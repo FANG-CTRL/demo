@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>兑换码管理系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        :root {
+            --primary: #667eea;
+            --primary-dark: #5a6fd6;
+            --secondary: #764ba2;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --dark: #343a40;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .app-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .header h1 {
+            color: var(--primary);
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: var(--gray);
+            font-size: 14px;
+        }
+        .offline-badge {
+            display: none;
+            background: var(--warning);
+            color: var(--dark);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 10px;
+        }
+        .offline-badge.show {
+            display: inline-block;
+        }
+        .card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+        .card-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 15px 25px;
+            font-size: 18px;
+            font-weight: 600;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-header .stats {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        .card-body {
+            padding: 25px;
+        }
+        .tab-container {
+            display: flex;
+            border-bottom: 2px solid #eee;
+            margin-bottom: 25px;
+        }
+        .tab {
+            padding: 12px 25px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 500;
+            color: var(--gray);
+        }
+        .tab:hover {
+            color: var(--primary);
+        }
+        .tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 16px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            transition: border-color 0.3s;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .btn {
+            padding: 12px 25px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+        .btn-success:hover {
+            background: #218838;
+        }
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        .btn-secondary {
+            background: var(--gray);
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .code-input {
+            text-align: center;
+            letter-spacing: 5px;
+            font-size: 24px !important;
+        }
+        .result {
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            font-size: 18px;
+            display: none;
+            margin-top: 20px;
+        }
+        .result.show {
+            display: block;
+        }
+        .result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        .code-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 2px solid #eee;
+            border-radius: 8px;
+        }
+        .code-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .code-item:last-child {
+            border-bottom: none;
+        }
+        .code-item:hover {
+            background: #f8f9fa;
+        }
+        .code-value {
+            font-family: monospace;
+            font-size: 16px;
+            letter-spacing: 2px;
+        }
+        .code-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray);
+        }
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s;
+        }
+        .toast.show {
+            transform: translateX(0);
+        }
+        .toast.success {
+            background: var(--success);
+        }
+        .toast.error {
+            background: var(--danger);
+        }
+        .toast.info {
+            background: var(--info);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+        .modal-body textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 15px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-family: monospace;
+            resize: vertical;
+        }
+        .modal-footer {
+            margin-top: 20px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+        .search-box {
+            position: relative;
+            margin-bottom: 15px;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px 12px 40px;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .search-box::before {
+            content: "🔍";
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        @media (max-width: 600px) {
+            .app-container {
+                padding: 10px;
+            }
+            .card-body {
+                padding: 15px;
+            }
+            .tab-container {
+                overflow-x: auto;
+            }
+            .tab {
+                padding: 10px 15px;
+                font-size: 14px;
+            }
+            .btn-group {
+                flex-direction: column;
+            }
+            .btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <h1>🎁 兑换码管理系统</h1>
+            <p>完全本地化运行，保护您的数据隐私</p>
+            <span id="offlineBadge" class="offline-badge">📴 离线模式</span>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span>🔑 兑换码查询</span>
+                <span id="totalCodes" class="stats">共 0 个码</span>
+            </div>
+            <div class="card-body">
+                <div class="tab-container">
+                    <div class="tab active" data-tab="check">查询</div>
+                    <div class="tab" data-tab="manage">管理</div>
+                </div>
+                
+                <div id="checkTab" class="tab-content active">
+                    <div class="form-group">
+                        <label for="codeInput">输入兑换码</label>
+                        <input type="text" id="codeInput" class="form-control code-input" maxlength="20" placeholder="请输入兑换码" onkeyup="this.value=this.value.replace(/[^\d]/g,'')">
+                    </div>
+                    <div class="btn-group">
+                        <button class="btn btn-primary" onclick="checkCode()">查询</button>
+                        <button class="btn btn-secondary" onclick="clearCheckInput()">清空</button>
+                    </div>
+                    <div id="checkResult" class="result"></div>
+                </div>
+
+                <div id="manageTab" class="tab-content">
+                    <div class="form-group">
+                        <label for="newCode">添加新兑换码</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="newCode" class="form-control" maxlength="20" placeholder="输入兑换码" onkeyup="this.value=this.value.replace(/[^\da-zA-Z]/g,'')">
+                            <button class="btn btn-success" onclick="addCode()">添加</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>批量导入</label>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="showImportModal()">📥 导入</button>
+                            <button class="btn btn-secondary" onclick="exportCodes()">📤 导出</button>
+                            <button class="btn btn-danger" onclick="clearAllCodes()">🗑️ 清空</button>
+                        </div>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="searchInput" placeholder="搜索兑换码..." oninput="filterCodes()">
+                    </div>
+                    <div id="codeList" class="code-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <div id="importModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">📥 批量导入兑换码</div>
+            <div class="modal-body">
+                <p style="margin-bottom: 15px; color: var(--gray); font-size: 14px;">每行一个兑换码</p>
+                <textarea id="importText" placeholder="645132
+123456
+abcdef
+..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeImportModal()">取消</button>
+                <button class="btn btn-primary" onclick="importCodes()">导入</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'redeemCodes';
+        let codes = [];
+
+        function init() {
+            loadCodes();
+            updateStats();
+            renderCodeList();
+            setupOnlineStatus();
+            setupTabs();
+        }
+
+        function loadCodes() {
+            try {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                if (stored) {
+                    codes = JSON.parse(stored);
+                } else {
+                    codes = ['645132'];
+                    saveCodes();
+                }
+            } catch (e) {
+                console.error('加载数据失败:', e);
+                codes = ['645132'];
+                saveCodes();
+            }
+        }
+
+        function saveCodes() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(codes));
+            } catch (e) {
+                showToast('存储空间不足', 'error');
+                console.error('保存数据失败:', e);
+            }
+        }
+
+        function setupOnlineStatus() {
+            const badge = document.getElementById('offlineBadge');
+            function updateStatus() {
+                badge.classList.toggle('show', !navigator.onLine);
+            }
+            window.addEventListener('online', updateStatus);
+            window.addEventListener('offline', updateStatus);
+            updateStatus();
+        }
+
+        function setupTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.dataset.tab + 'Tab').classList.add('active');
+                });
+            });
+        }
+
+        function checkCode() {
+            const input = document.getElementById('codeInput');
+            const result = document.getElementById('checkResult');
+            const code = input.value.trim();
+
+            if (!code) {
+                result.className = 'result show error';
+                result.textContent = '请输入兑换码';
+                return;
+            }
+
+            if (codes.includes(code)) {
+                result.className = 'result show success';
+                result.textContent = '✓ 兑换码有效！';
+            } else {
+                result.className = 'result show error';
+                result.textContent = '✗ 兑换码不存在';
+            }
+        }
+
+        function clearCheckInput() {
+            document.getElementById('codeInput').value = '';
+            document.getElementById('checkResult').className = 'result';
+        }
+
+        function addCode() {
+            const input = document.getElementById('newCode');
+            const code = input.value.trim();
+
+            if (!code) {
+                showToast('请输入兑换码', 'error');
+                return;
+            }
+
+            if (codes.includes(code)) {
+                showToast('兑换码已存在', 'error');
+                return;
+            }
+
+            codes.push(code);
+            saveCodes();
+            updateStats();
+            renderCodeList();
+            input.value = '';
+            showToast('兑换码添加成功', 'success');
+        }
+
+        function deleteCode(code) {
+            if (confirm(`确定要删除兑换码 "${code}" 吗？`)) {
+                codes = codes.filter(c => c !== code);
+                saveCodes();
+                updateStats();
+                renderCodeList();
+                showToast('兑换码已删除', 'success');
+            }
+        }
+
+        function clearAllCodes() {
+            if (codes.length === 0) {
+                showToast('没有可清空的数据', 'info');
+                return;
+            }
+            if (confirm(`确定要清空所有 ${codes.length} 个兑换码吗？此操作不可恢复！`)) {
+                codes = [];
+                saveCodes();
+                updateStats();
+                renderCodeList();
+                showToast('所有兑换码已清空', 'success');
+            }
+        }
+
+        function showImportModal() {
+            document.getElementById('importModal').classList.add('show');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.remove('show');
+            document.getElementById('importText').value = '';
+        }
+
+        function importCodes() {
+            const text = document.getElementById('importText').value;
+            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+            
+            if (lines.length === 0) {
+                showToast('请输入兑换码', 'error');
+                return;
+            }
+
+            let added = 0;
+            let skipped = 0;
+
+            lines.forEach(line => {
+                if (codes.includes(line)) {
+                    skipped++;
+                } else {
+                    codes.push(line);
+                    added++;
+                }
+            });
+
+            saveCodes();
+            updateStats();
+            renderCodeList();
+            closeImportModal();
+            showToast(`导入完成：新增 ${added} 个，跳过 ${skipped} 个重复`, 'success');
+        }
+
+        function exportCodes() {
+            if (codes.length === 0) {
+                showToast('没有可导出的数据', 'info');
+                return;
+            }
+
+            const text = codes.join('\n');
+            const blob = new Blob([text], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `兑换码_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast(`已导出 ${codes.length} 个兑换码`, 'success');
+        }
+
+        function filterCodes() {
+            renderCodeList();
+        }
+
+        function renderCodeList() {
+            const container = document.getElementById('codeList');
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            
+            const filtered = codes.filter(c => c.toLowerCase().includes(search));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                        <p>${search ? '没有搜索结果' : '暂无兑换码'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map((code, index) => `
+                <div class="code-item">
+                    <span class="code-value">${escapeHtml(code)}</span>
+                    <div class="code-actions">
+                        <button class="btn btn-danger btn-sm" onclick="deleteCode('${escapeHtml(code)}')">删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('totalCodes').textContent = `共 ${codes.length} 个码`;
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        document.getElementById('codeInput').addEventListener('keypress', e => {
+            if (e.key === 'Enter') checkCode();
+        });
+
+        document.getElementById('newCode').addEventListener('keypress', e => {
+            if (e.key === 'Enter') addCode();
+        });
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeImportModal();
+        });
+
+        init();
+    </script>
+</body>
+</html>
